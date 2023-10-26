@@ -13,4 +13,14 @@ macro_rules! t {
   ["("] => [$crate::syn::TokenKind::GroupL];
   [")"] => [$crate::syn::TokenKind::GroupR];
   [eof] => [$crate::syn::TokenKind::Eof];
+  [+] => [$crate::syn::TokenKind::Plus];
+  [-] => [$crate::syn::TokenKind::Minus];
+  [*] => [$crate::syn::TokenKind::Star];
+  [/] => [$crate::syn::TokenKind::Slash];
+  [<] => [$crate::syn::TokenKind::AngleL];
+  [>] => [$crate::syn::TokenKind::AngleR];
+  [<=] => [$crate::syn::TokenKind::AngleLEq];
+  [>=] => [$crate::syn::TokenKind::AngleREq];
+  [==] => [$crate::syn::TokenKind::EqEq];
+  [!=] => [$crate::syn::TokenKind::Neq];
 }

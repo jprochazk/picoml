@@ -3,12 +3,9 @@ mod syn;
 mod ty;
 
 use crate::error::Result;
-use reedline::default_emacs_keybindings;
-use reedline::EditCommand;
-use reedline::Emacs;
-use reedline::KeyCode;
-use reedline::KeyModifiers;
-use reedline::ReedlineEvent;
+use reedline::SearchQuery;
+use reedline::ValidationResult;
+use reedline::Validator;
 use reedline::{Prompt, Reedline, Signal};
 use std::borrow::Cow;
 
@@ -38,29 +35,46 @@ impl Prompt for Repl {
 
 fn line(buf: &str) -> Result<()> {
   let expr = syn::parse(buf)?;
-  let ty = ty::infer(expr)?;
-  println!("{ty}");
+  // println!("{expr:?}");
+  let expr = ty::infer(expr)?;
+  println!("type:\n  {}", expr.ty);
   Ok(())
 }
 
-fn main() {
-  let mut keybindings = default_emacs_keybindings();
-  keybindings.add_binding(
-    KeyModifiers::CONTROL,
-    KeyCode::Char('n'),
-    ReedlineEvent::Edit(vec![EditCommand::InsertNewline]),
-  );
-  let mut line_editor = Reedline::create().with_edit_mode(Box::new(Emacs::new(keybindings)));
+struct Newline;
+impl Validator for Newline {
+  fn validate(&self, line: &str) -> ValidationResult {
+    if line.trim() == "exit" || line.trim_end().ends_with(';') {
+      ValidationResult::Complete
+    } else {
+      ValidationResult::Incomplete
+    }
+  }
+}
 
+fn main() {
+  println!(
+    "picoML v{}\
+    \nCTRL-C or type \"exit\" to quit\
+    \nCTRL-D to cancel the current input",
+    env!("CARGO_PKG_VERSION")
+  );
+  let mut line_editor = Reedline::create().with_validator(Box::new(Newline));
   loop {
     let sig = line_editor.read_line(&Repl);
     match sig {
+      Ok(Signal::CtrlC) => break,
+      Ok(Signal::CtrlD) => continue,
       Ok(Signal::Success(buf)) => {
-        if let Err(e) = line(&buf) {
+        if buf.trim() == "exit" {
+          break;
+        }
+        let buf = buf.trim_end();
+        let buf = buf.strip_suffix(';').unwrap_or(buf);
+        if let Err(e) = line(buf) {
           println!("{e}");
         }
       }
-      Ok(Signal::CtrlC | Signal::CtrlD) => break,
       _ => {}
     }
   }
